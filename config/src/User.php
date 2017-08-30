@@ -62,4 +62,9 @@ class User
     {
         $this->assignedBugs[] = $bug;
     }
+
+    public function getReportedBugs()
+    {
+        return $this->reportedBugs;
+    }
 }

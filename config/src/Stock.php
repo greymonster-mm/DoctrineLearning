@@ -25,6 +25,7 @@ class Stock
      */
     private $market;
 
+     //ManyToOne(targetEntity="Market", inversedBy="stocks")
     public function __construct($symbol, Market $market)
     {
         $this->symbol = $symbol;
@@ -35,5 +36,10 @@ class Stock
     public function getSymbol()
     {
         return $this->symbol;
+    }
+
+    public function getMarket()
+    {
+        return $this->market;
     }
 }

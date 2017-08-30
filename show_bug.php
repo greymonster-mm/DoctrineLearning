@@ -12,3 +12,7 @@ $bug = $entityManager->find("Bug", (int)$theBugId);
 
 echo "Bug: ".$bug->getDescription()."\n";
 echo "Engineer: ".$bug->getEngineer()->getName()."\n";
+foreach ($bug->getProducts() as $v)
+{
+    echo $v->getName();
+}

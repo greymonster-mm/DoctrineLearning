@@ -5,6 +5,18 @@ require_once "config/src/Stock.php";
  
 
 $em = $entityManager;
+
+
+
+$market = $em->find('stock', 3);
+$em->remove($market);
+$em->flush();
+
+
+
+
+
+die;
 $market = new Market("Some Exchange");
 $stock1 = new Stock("GAPL", $market);
 $stock2 = new Stock("AOOG", $market);

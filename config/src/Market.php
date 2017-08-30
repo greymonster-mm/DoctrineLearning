@@ -21,7 +21,7 @@ class Market
     private $name;
 
     /**
-     * @OneToMany(targetEntity="Stock", mappedBy="market", indexBy="symbol")
+     * @OneToMany(targetEntity="Stock", mappedBy="market", indexBy="symbol", fetch="EXTRA_LAZY")
      * @var Stock[]
      */
     private $stocks;

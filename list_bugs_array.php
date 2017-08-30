@@ -9,7 +9,9 @@ require_once "config/src/Product.php";
 $dql = "SELECT b, e, r, p FROM Bug b JOIN b.engineer e ".
     "JOIN b.reporter r JOIN b.products p ORDER BY b.created DESC";
 //$dql = "SELECT b FROM Bug b";
-$query = $entityManager->createQuery($dql);
+$query = $entityManager->createQuery($dql)
+    ->setFirstResult(0)
+    ->setMaxResults(1);
 $bugs = $query->getArrayResult();
 
 foreach ($bugs as $bug) {
