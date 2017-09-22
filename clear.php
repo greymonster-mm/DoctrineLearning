@@ -19,6 +19,9 @@ $entityManager->flush();
 //$bug->getReportedBugs()->toArray();
 
 $identity = $entityManager->getUnitOfWork()->getIdentityMap();
+
+echo $entityManager->getUnitOfWork()->size();
+
 foreach ($identity as $class => $objectlist) {
     echo $class;
 }
