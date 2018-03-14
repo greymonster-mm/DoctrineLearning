@@ -6,5 +6,5 @@ cd ..
 rm build -Rf
 sphinx-build en build
 
-sphinx-build -b latex en build/pdf
-rubber --into build/pdf --pdf build/pdf/Doctrine2ORM.tex
+sphinx-build -b html en build/pdf
+rubber --into build/html --html build/pdf/Doctrine2ORM.tex
