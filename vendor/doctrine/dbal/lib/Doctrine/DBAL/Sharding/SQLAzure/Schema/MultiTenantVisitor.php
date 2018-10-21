@@ -19,13 +19,14 @@
 
 namespace Doctrine\DBAL\Sharding\SQLAzure\Schema;
 
-use Doctrine\DBAL\Schema\Visitor\Visitor;
-use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\ForeignKeyConstraint;
-use Doctrine\DBAL\Schema\Sequence;
-use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Visitor\Visitor,
+    Doctrine\DBAL\Schema\Table,
+    Doctrine\DBAL\Schema\Schema,
+    Doctrine\DBAL\Schema\Column,
+    Doctrine\DBAL\Schema\ForeignKeyConstraint,
+    Doctrine\DBAL\Schema\Constraint,
+    Doctrine\DBAL\Schema\Sequence,
+    Doctrine\DBAL\Schema\Index;
 
 /**
  * Converts a single tenant schema into a multi-tenant schema for SQL Azure
@@ -41,8 +42,8 @@ use Doctrine\DBAL\Schema\Index;
  * - You always have to work with `filtering=On` when using federations with this
  *   multi-tenant approach.
  * - Primary keys are either using globally unique ids (GUID, Table Generator)
- *   or you explicitly add the tenant_id in every UPDATE or DELETE statement
- *   (otherwise they will affect the same-id rows from other tenants as well).
+ *   or you explicitly add the tenent_id in every UPDATE or DELETE statement
+ *   (otherwise they will affect the same-id rows from other tenents as well).
  *   SQLAzure throws errors when you try to create IDENTIY columns on federated
  *   tables.
  *
@@ -73,12 +74,7 @@ class MultiTenantVisitor implements Visitor
      */
     private $distributionName;
 
-    /**
-     * @param array       $excludedTables
-     * @param string      $tenantColumnName
-     * @param string|null $distributionName
-     */
-    public function __construct(array $excludedTables = [], $tenantColumnName = 'tenant_id', $distributionName = null)
+    public function __construct(array $excludedTables = array(), $tenantColumnName = 'tenant_id', $distributionName = null)
     {
         $this->excludedTables = $excludedTables;
         $this->tenantColumnName = $tenantColumnName;
@@ -86,7 +82,7 @@ class MultiTenantVisitor implements Visitor
     }
 
     /**
-     * {@inheritdoc}
+     * @param Table $table
      */
     public function acceptTable(Table $table)
     {
@@ -94,9 +90,9 @@ class MultiTenantVisitor implements Visitor
             return;
         }
 
-        $table->addColumn($this->tenantColumnName, $this->tenantColumnType, [
+        $table->addColumn($this->tenantColumnName, $this->tenantColumnType, array(
             'default' => "federation_filtering_value('". $this->distributionName ."')",
-        ]);
+        ));
 
         $clusteredIndex = $this->getClusteredIndex($table);
 
@@ -113,19 +109,12 @@ class MultiTenantVisitor implements Visitor
         }
     }
 
-    /**
-     * @param \Doctrine\DBAL\Schema\Table $table
-     *
-     * @return \Doctrine\DBAL\Schema\Index
-     *
-     * @throws \RuntimeException
-     */
     private function getClusteredIndex($table)
     {
         foreach ($table->getIndexes() as $index) {
             if ($index->isPrimary() && ! $index->hasFlag('nonclustered')) {
                 return $index;
-            } elseif ($index->hasFlag('clustered')) {
+            } else if ($index->hasFlag('clustered')) {
                 return $index;
             }
         }
@@ -133,37 +122,40 @@ class MultiTenantVisitor implements Visitor
     }
 
     /**
-     * {@inheritdoc}
+     * @param Schema $schema
      */
     public function acceptSchema(Schema $schema)
     {
     }
 
     /**
-     * {@inheritdoc}
+     * @param Column $column
      */
     public function acceptColumn(Table $table, Column $column)
     {
     }
 
     /**
-     * {@inheritdoc}
+     * @param Table $localTable
+     * @param ForeignKeyConstraint $fkConstraint
      */
     public function acceptForeignKey(Table $localTable, ForeignKeyConstraint $fkConstraint)
     {
     }
 
     /**
-     * {@inheritdoc}
+     * @param Table $table
+     * @param Index $index
      */
     public function acceptIndex(Table $table, Index $index)
     {
     }
 
     /**
-     * {@inheritdoc}
+     * @param Sequence $sequence
      */
     public function acceptSequence(Sequence $sequence)
     {
     }
 }
+

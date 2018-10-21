@@ -28,9 +28,6 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
  */
 class TimeType extends Type
 {
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
         return Type::TIME;
@@ -49,15 +46,8 @@ class TimeType extends Type
      */
     public function convertToDatabaseValue($value, AbstractPlatform $platform)
     {
-        if (null === $value) {
-            return $value;
-        }
-
-        if ($value instanceof \DateTimeInterface) {
-            return $value->format($platform->getTimeFormatString());
-        }
-
-        throw ConversionException::conversionFailedInvalidType($value, $this->getName(), ['null', 'DateTime']);
+        return ($value !== null)
+            ? $value->format($platform->getTimeFormatString()) : null;
     }
 
     /**
@@ -65,15 +55,14 @@ class TimeType extends Type
      */
     public function convertToPHPValue($value, AbstractPlatform $platform)
     {
-        if ($value === null || $value instanceof \DateTimeInterface) {
+        if ($value === null || $value instanceof \DateTime) {
             return $value;
         }
 
-        $val = \DateTime::createFromFormat('!' . $platform->getTimeFormatString(), $value);
+        $val = \DateTime::createFromFormat($platform->getTimeFormatString(), $value);
         if ( ! $val) {
             throw ConversionException::conversionFailedFormat($value, $this->getName(), $platform->getTimeFormatString());
         }
-
         return $val;
     }
 }

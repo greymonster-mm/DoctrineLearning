@@ -24,10 +24,8 @@ class ComposerStaticInit18fd92af3f7f6267c1fe2d0453f93a24
         ),
         'D' => 
         array (
-            'Doctrine\\Common\\Inflector\\' => 26,
             'Doctrine\\Common\\Cache\\' => 22,
             'Doctrine\\Common\\Annotations\\' => 28,
-            'Doctrine\\Common\\' => 16,
         ),
     );
 
@@ -52,10 +50,6 @@ class ComposerStaticInit18fd92af3f7f6267c1fe2d0453f93a24
         array (
             0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
         ),
-        'Doctrine\\Common\\Inflector\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/inflector/lib/Doctrine/Common/Inflector',
-        ),
         'Doctrine\\Common\\Cache\\' => 
         array (
             0 => __DIR__ . '/..' . '/doctrine/cache/lib/Doctrine/Common/Cache',
@@ -64,20 +58,16 @@ class ComposerStaticInit18fd92af3f7f6267c1fe2d0453f93a24
         array (
             0 => __DIR__ . '/..' . '/doctrine/annotations/lib/Doctrine/Common/Annotations',
         ),
-        'Doctrine\\Common\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/common/lib/Doctrine/Common',
-        ),
     );
 
     public static $prefixesPsr0 = array (
         'D' => 
         array (
-            'Doctrine\\ORM\\' => 
+            'Doctrine\\ORM' => 
             array (
                 0 => __DIR__ . '/..' . '/doctrine/orm/lib',
             ),
-            'Doctrine\\DBAL\\' => 
+            'Doctrine\\DBAL' => 
             array (
                 0 => __DIR__ . '/..' . '/doctrine/dbal/lib',
             ),
@@ -85,9 +75,17 @@ class ComposerStaticInit18fd92af3f7f6267c1fe2d0453f93a24
             array (
                 0 => __DIR__ . '/..' . '/doctrine/lexer/lib',
             ),
+            'Doctrine\\Common\\Inflector\\' => 
+            array (
+                0 => __DIR__ . '/..' . '/doctrine/inflector/lib',
+            ),
             'Doctrine\\Common\\Collections\\' => 
             array (
                 0 => __DIR__ . '/..' . '/doctrine/collections/lib',
+            ),
+            'Doctrine\\Common\\' => 
+            array (
+                0 => __DIR__ . '/..' . '/doctrine/common/lib',
             ),
         ),
     );

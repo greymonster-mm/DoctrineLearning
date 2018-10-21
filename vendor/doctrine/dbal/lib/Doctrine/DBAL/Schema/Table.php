@@ -1,5 +1,7 @@
 <?php
 /*
+ *  $Id$
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -24,11 +26,13 @@ use Doctrine\DBAL\Schema\Visitor\Visitor;
 use Doctrine\DBAL\DBALException;
 
 /**
- * Object Representation of a table.
+ * Object Representation of a table
  *
- * @link   www.doctrine-project.org
- * @since  2.0
- * @author Benjamin Eberlei <kontakt@beberlei.de>
+ * 
+ * @link    www.doctrine-project.org
+ * @since   2.0
+ * @version $Revision$
+ * @author  Benjamin Eberlei <kontakt@beberlei.de>
  */
 class Table extends AbstractAsset
 {
@@ -38,17 +42,12 @@ class Table extends AbstractAsset
     protected $_name = null;
 
     /**
-     * @var Column[]
+     * @var array
      */
     protected $_columns = array();
 
     /**
-     * @var Index[]
-     */
-    private $implicitIndexes = array();
-
-    /**
-     * @var Index[]
+     * @var array
      */
     protected $_indexes = array();
 
@@ -58,7 +57,7 @@ class Table extends AbstractAsset
     protected $_primaryKeyName = false;
 
     /**
-     * @var ForeignKeyConstraint[]
+     * @var array
      */
     protected $_fkConstraints = array();
 
@@ -73,14 +72,13 @@ class Table extends AbstractAsset
     protected $_schemaConfig = null;
 
     /**
-     * @param string                 $tableName
-     * @param Column[]               $columns
-     * @param Index[]                $indexes
-     * @param ForeignKeyConstraint[] $fkConstraints
-     * @param integer                $idGeneratorType
-     * @param array                  $options
      *
-     * @throws DBALException
+     * @param string $tableName
+     * @param array $columns
+     * @param array $indexes
+     * @param array $fkConstraints
+     * @param int $idGeneratorType
+     * @param array $options
      */
     public function __construct($tableName, array $columns=array(), array $indexes=array(), array $fkConstraints=array(), $idGeneratorType = 0, array $options=array())
     {
@@ -89,6 +87,7 @@ class Table extends AbstractAsset
         }
 
         $this->_setName($tableName);
+        $this->_idGeneratorType = $idGeneratorType;
 
         foreach ($columns as $column) {
             $this->_addColumn($column);
@@ -107,8 +106,6 @@ class Table extends AbstractAsset
 
     /**
      * @param SchemaConfig $schemaConfig
-     *
-     * @return void
      */
     public function setSchemaConfig(SchemaConfig $schemaConfig)
     {
@@ -116,7 +113,7 @@ class Table extends AbstractAsset
     }
 
     /**
-     * @return integer
+     * @return int
      */
     protected function _getMaxIdentifierLength()
     {
@@ -128,47 +125,44 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Sets the Primary Key.
+     * Set Primary Key
      *
-     * @param array          $columns
-     * @param string|boolean $indexName
-     *
-     * @return self
+     * @param array $columns
+     * @param string $indexName
+     * @return Table
      */
     public function setPrimaryKey(array $columns, $indexName = false)
     {
-        $this->_addIndex($this->_createIndex($columns, $indexName ?: "primary", true, true));
+        $primaryKey = $this->_createIndex($columns, $indexName ?: "primary", true, true);
 
         foreach ($columns as $columnName) {
             $column = $this->getColumn($columnName);
             $column->setNotnull(true);
         }
 
-        return $this;
+        return $primaryKey;
     }
 
     /**
-     * @param array       $columnNames
-     * @param string|null $indexName
-     * @param array       $flags
-     * @param array       $options
-     *
-     * @return self
+     * @param array $columnNames
+     * @param string $indexName
+     * @return Table
      */
-    public function addIndex(array $columnNames, $indexName = null, array $flags = array(), array $options = array())
+    public function addIndex(array $columnNames, $indexName = null)
     {
-        if ($indexName == null) {
+        if($indexName == null) {
             $indexName = $this->_generateIdentifierName(
                 array_merge(array($this->getName()), $columnNames), "idx", $this->_getMaxIdentifierLength()
             );
         }
 
-        return $this->_addIndex($this->_createIndex($columnNames, $indexName, false, false, $flags, $options));
+        return $this->_createIndex($columnNames, $indexName, false, false);
     }
 
     /**
-     * Drops the primary key from this table.
+     * Drop an index from this table.
      *
+     * @param string $indexName
      * @return void
      */
     public function dropPrimaryKey()
@@ -178,17 +172,14 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Drops an index from this table.
+     * Drop an index from this table.
      *
-     * @param string $indexName The index name.
-     *
+     * @param string $indexName
      * @return void
-     *
-     * @throws SchemaException If the index does not exist.
      */
     public function dropIndex($indexName)
     {
-        $indexName = $this->normalizeIdentifier($indexName);
+        $indexName = strtolower($indexName);
         if ( ! $this->hasIndex($indexName)) {
             throw SchemaException::indexDoesNotExist($indexName, $this->_name);
         }
@@ -196,13 +187,12 @@ class Table extends AbstractAsset
     }
 
     /**
-     * @param array       $columnNames
-     * @param string|null $indexName
-     * @param array       $options
      *
-     * @return self
+     * @param array $columnNames
+     * @param string $indexName
+     * @return Table
      */
-    public function addUniqueIndex(array $columnNames, $indexName = null, array $options = array())
+    public function addUniqueIndex(array $columnNames, $indexName = null)
     {
         if ($indexName === null) {
             $indexName = $this->_generateIdentifierName(
@@ -210,61 +200,14 @@ class Table extends AbstractAsset
             );
         }
 
-        return $this->_addIndex($this->_createIndex($columnNames, $indexName, true, false, array(), $options));
+        return $this->_createIndex($columnNames, $indexName, true, false);
     }
 
     /**
-     * Renames an index.
+     * Check if an index begins in the order of the given columns.
      *
-     * @param string      $oldIndexName The name of the index to rename from.
-     * @param string|null $newIndexName The name of the index to rename to.
-     *                                  If null is given, the index name will be auto-generated.
-     *
-     * @return self This table instance.
-     *
-     * @throws SchemaException if no index exists for the given current name
-     *                         or if an index with the given new name already exists on this table.
-     */
-    public function renameIndex($oldIndexName, $newIndexName = null)
-    {
-        $oldIndexName           = $this->normalizeIdentifier($oldIndexName);
-        $normalizedNewIndexName = $this->normalizeIdentifier($newIndexName);
-
-        if ($oldIndexName === $normalizedNewIndexName) {
-            return $this;
-        }
-
-        if ( ! $this->hasIndex($oldIndexName)) {
-            throw SchemaException::indexDoesNotExist($oldIndexName, $this->_name);
-        }
-
-        if ($this->hasIndex($normalizedNewIndexName)) {
-            throw SchemaException::indexAlreadyExists($normalizedNewIndexName, $this->_name);
-        }
-
-        $oldIndex = $this->_indexes[$oldIndexName];
-
-        if ($oldIndex->isPrimary()) {
-            $this->dropPrimaryKey();
-
-            return $this->setPrimaryKey($oldIndex->getColumns(), $newIndexName);
-        }
-
-        unset($this->_indexes[$oldIndexName]);
-
-        if ($oldIndex->isUnique()) {
-            return $this->addUniqueIndex($oldIndex->getColumns(), $newIndexName, $oldIndex->getOptions());
-        }
-
-        return $this->addIndex($oldIndex->getColumns(), $newIndexName, $oldIndex->getFlags(), $oldIndex->getOptions());
-    }
-
-    /**
-     * Checks if an index begins in the order of the given columns.
-     *
-     * @param array $columnsNames
-     *
-     * @return boolean
+     * @param  array $columnsNames
+     * @return bool
      */
     public function columnsAreIndexed(array $columnsNames)
     {
@@ -274,25 +217,20 @@ class Table extends AbstractAsset
                 return true;
             }
         }
-
         return false;
     }
 
     /**
-     * @param array   $columnNames
-     * @param string  $indexName
-     * @param boolean $isUnique
-     * @param boolean $isPrimary
-     * @param array   $flags
-     * @param array   $options
      *
-     * @return Index
-     *
-     * @throws SchemaException
+     * @param array $columnNames
+     * @param string $indexName
+     * @param bool $isUnique
+     * @param bool $isPrimary
+     * @return Table
      */
-    private function _createIndex(array $columnNames, $indexName, $isUnique, $isPrimary, array $flags = array(), array $options = array())
+    private function _createIndex(array $columnNames, $indexName, $isUnique, $isPrimary)
     {
-        if (preg_match('(([^a-zA-Z0-9_]+))', $this->normalizeIdentifier($indexName))) {
+        if (preg_match('(([^a-zA-Z0-9_]+))', $indexName)) {
             throw SchemaException::indexNameInvalid($indexName);
         }
 
@@ -305,15 +243,14 @@ class Table extends AbstractAsset
                 throw SchemaException::columnDoesNotExist($columnName, $this->_name);
             }
         }
-
-        return new Index($indexName, $columnNames, $isUnique, $isPrimary, $flags, $options);
+        $this->_addIndex(new Index($indexName, $columnNames, $isUnique, $isPrimary));
+        return $this;
     }
 
     /**
      * @param string $columnName
-     * @param string $typeName
-     * @param array  $options
-     *
+     * @param string $columnType
+     * @param array $options
      * @return Column
      */
     public function addColumn($columnName, $typeName, array $options=array())
@@ -321,19 +258,15 @@ class Table extends AbstractAsset
         $column = new Column($columnName, Type::getType($typeName), $options);
 
         $this->_addColumn($column);
-
         return $column;
     }
 
     /**
-     * Renames a Column.
+     * Rename Column
      *
      * @param string $oldColumnName
      * @param string $newColumnName
-     *
-     * @deprecated
-     *
-     * @throws DBALException
+     * @return Table
      */
     public function renameColumn($oldColumnName, $newColumnName)
     {
@@ -343,69 +276,63 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Change Column Details.
+     * Change Column Details
      *
      * @param string $columnName
-     * @param array  $options
-     *
-     * @return self
+     * @param array $options
+     * @return Table
      */
     public function changeColumn($columnName, array $options)
     {
         $column = $this->getColumn($columnName);
         $column->setOptions($options);
-
         return $this;
     }
 
     /**
-     * Drops a Column from the Table.
+     * Drop Column from Table
      *
      * @param string $columnName
-     *
-     * @return self
+     * @return Table
      */
     public function dropColumn($columnName)
     {
-        $columnName = $this->normalizeIdentifier($columnName);
+        $columnName = strtolower($columnName);
+        $column = $this->getColumn($columnName);
         unset($this->_columns[$columnName]);
-
         return $this;
     }
 
+
     /**
-     * Adds a foreign key constraint.
+     * Add a foreign key constraint
      *
-     * Name is inferred from the local columns.
+     * Name is inferred from the local columns
      *
-     * @param Table|string $foreignTable Table schema instance or table name
-     * @param array        $localColumnNames
-     * @param array        $foreignColumnNames
-     * @param array        $options
-     * @param string|null  $constraintName
-     *
-     * @return self
+     * @param Table $foreignTable
+     * @param array $localColumns
+     * @param array $foreignColumns
+     * @param array $options
+     * @param string $constraintName
+     * @return Table
      */
     public function addForeignKeyConstraint($foreignTable, array $localColumnNames, array $foreignColumnNames, array $options=array(), $constraintName = null)
     {
-        $constraintName = $constraintName ?: $this->_generateIdentifierName(array_merge((array) $this->getName(), $localColumnNames), "fk", $this->_getMaxIdentifierLength());
-
+        $constraintName = $constraintName ?: $this->_generateIdentifierName(array_merge((array)$this->getName(), $localColumnNames), "fk", $this->_getMaxIdentifierLength());
         return $this->addNamedForeignKeyConstraint($constraintName, $foreignTable, $localColumnNames, $foreignColumnNames, $options);
     }
 
     /**
-     * Adds a foreign key constraint.
+     * Add a foreign key constraint
      *
-     * Name is to be generated by the database itself.
+     * Name is to be generated by the database itsself.
      *
      * @deprecated Use {@link addForeignKeyConstraint}
-     *
-     * @param Table|string $foreignTable Table schema instance or table name
-     * @param array        $localColumnNames
-     * @param array        $foreignColumnNames
-     * @param array        $options
-     *
-     * @return self
+     * @param Table $foreignTable
+     * @param array $localColumns
+     * @param array $foreignColumns
+     * @param array $options
+     * @return Table
      */
     public function addUnnamedForeignKeyConstraint($foreignTable, array $localColumnNames, array $foreignColumnNames, array $options=array())
     {
@@ -413,28 +340,28 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Adds a foreign key constraint with a given name.
+     * Add a foreign key constraint with a given name
      *
      * @deprecated Use {@link addForeignKeyConstraint}
-     *
-     * @param string       $name
-     * @param Table|string $foreignTable Table schema instance or table name
-     * @param array        $localColumnNames
-     * @param array        $foreignColumnNames
-     * @param array        $options
-     *
-     * @return self
-     *
-     * @throws SchemaException
+     * @param string $name
+     * @param Table $foreignTable
+     * @param array $localColumns
+     * @param array $foreignColumns
+     * @param array $options
+     * @return Table
      */
     public function addNamedForeignKeyConstraint($name, $foreignTable, array $localColumnNames, array $foreignColumnNames, array $options=array())
     {
         if ($foreignTable instanceof Table) {
+            $foreignTableName = $foreignTable->getName();
+
             foreach ($foreignColumnNames as $columnName) {
                 if ( ! $foreignTable->hasColumn($columnName)) {
                     throw SchemaException::columnDoesNotExist($columnName, $foreignTable->getName());
                 }
             }
+        } else {
+            $foreignTableName = $foreignTable;
         }
 
         foreach ($localColumnNames as $columnName) {
@@ -444,7 +371,7 @@ class Table extends AbstractAsset
         }
 
         $constraint = new ForeignKeyConstraint(
-            $localColumnNames, $foreignTable, $foreignColumnNames, $name, $options
+            $localColumnNames, $foreignTableName, $foreignColumnNames, $name, $options
         );
         $this->_addForeignKeyConstraint($constraint);
 
@@ -454,27 +381,21 @@ class Table extends AbstractAsset
     /**
      * @param string $name
      * @param string $value
-     *
-     * @return self
+     * @return Table
      */
     public function addOption($name, $value)
     {
         $this->_options[$name] = $value;
-
         return $this;
     }
 
     /**
      * @param Column $column
-     *
-     * @return void
-     *
-     * @throws SchemaException
      */
     protected function _addColumn(Column $column)
     {
         $columnName = $column->getName();
-        $columnName = $this->normalizeIdentifier($columnName);
+        $columnName = strtolower($columnName);
 
         if (isset($this->_columns[$columnName])) {
             throw SchemaException::columnAlreadyExists($this->getName(), $columnName);
@@ -484,34 +405,32 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Adds an index to the table.
+     * Add index to table
      *
      * @param Index $indexCandidate
-     *
-     * @return self
-     *
-     * @throws SchemaException
+     * @return Table
      */
     protected function _addIndex(Index $indexCandidate)
     {
-        $indexName = $indexCandidate->getName();
-        $indexName = $this->normalizeIdentifier($indexName);
-        $replacedImplicitIndexes = array();
-
-        foreach ($this->implicitIndexes as $name => $implicitIndex) {
-            if ($implicitIndex->isFullfilledBy($indexCandidate) && isset($this->_indexes[$name])) {
-                $replacedImplicitIndexes[] = $name;
+        // check for duplicates
+        foreach ($this->_indexes as $existingIndex) {
+            if ($indexCandidate->isFullfilledBy($existingIndex)) {
+                return $this;
             }
         }
 
-        if ((isset($this->_indexes[$indexName]) && ! in_array($indexName, $replacedImplicitIndexes, true)) ||
-            ($this->_primaryKeyName != false && $indexCandidate->isPrimary())
-        ) {
+        $indexName = $indexCandidate->getName();
+        $indexName = strtolower($indexName);
+
+        if (isset($this->_indexes[$indexName]) || ($this->_primaryKeyName != false && $indexCandidate->isPrimary())) {
             throw SchemaException::indexAlreadyExists($indexName, $this->_name);
         }
 
-        foreach ($replacedImplicitIndexes as $name) {
-            unset($this->_indexes[$name], $this->implicitIndexes[$name]);
+        // remove overruled indexes
+        foreach ($this->_indexes as $idxKey => $existingIndex) {
+            if ($indexCandidate->overrules($existingIndex)) {
+                unset($this->_indexes[$idxKey]);
+            }
         }
 
         if ($indexCandidate->isPrimary()) {
@@ -519,96 +438,62 @@ class Table extends AbstractAsset
         }
 
         $this->_indexes[$indexName] = $indexCandidate;
-
         return $this;
     }
 
     /**
      * @param ForeignKeyConstraint $constraint
-     *
-     * @return void
      */
     protected function _addForeignKeyConstraint(ForeignKeyConstraint $constraint)
     {
         $constraint->setLocalTable($this);
 
-        if (strlen($constraint->getName())) {
+        if(strlen($constraint->getName())) {
             $name = $constraint->getName();
         } else {
             $name = $this->_generateIdentifierName(
-                array_merge((array) $this->getName(), $constraint->getLocalColumns()), "fk", $this->_getMaxIdentifierLength()
+                array_merge((array)$this->getName(), $constraint->getLocalColumns()), "fk", $this->_getMaxIdentifierLength()
             );
         }
-        $name = $this->normalizeIdentifier($name);
+        $name = strtolower($name);
 
         $this->_fkConstraints[$name] = $constraint;
-
-        // add an explicit index on the foreign key columns. If there is already an index that fulfils this requirements drop the request.
+        // add an explicit index on the foreign key columns. If there is already an index that fullfils this requirements drop the request.
         // In the case of __construct calling this method during hydration from schema-details all the explicitly added indexes
-        // lead to duplicates. This creates computation overhead in this case, however no duplicate indexes are ever added (based on columns).
-        $indexName = $this->_generateIdentifierName(
-            array_merge(array($this->getName()), $constraint->getColumns()),
-            "idx",
-            $this->_getMaxIdentifierLength()
-        );
-        $indexCandidate = $this->_createIndex($constraint->getColumns(), $indexName, false, false);
-
-        foreach ($this->_indexes as $existingIndex) {
-            if ($indexCandidate->isFullfilledBy($existingIndex)) {
-                return;
-            }
-        }
-
-        $this->_addIndex($indexCandidate);
-        $this->implicitIndexes[$this->normalizeIdentifier($indexName)] = $indexCandidate;
+        // lead to duplicates. This creates compuation overhead in this case, however no duplicate indexes are ever added (based on columns).
+        $this->addIndex($constraint->getColumns());
     }
 
     /**
-     * Returns whether this table has a foreign key constraint with the given name.
-     *
-     * @param string $constraintName
-     *
-     * @return boolean
+     * Does Table have a foreign key constraint with the given name?
+     *      *
+     * @param  string $constraintName
+     * @return bool
      */
     public function hasForeignKey($constraintName)
     {
-        $constraintName = $this->normalizeIdentifier($constraintName);
-
+        $constraintName = strtolower($constraintName);
         return isset($this->_fkConstraints[$constraintName]);
     }
 
     /**
-     * Returns the foreign key constraint with the given name.
-     *
-     * @param string $constraintName The constraint name.
-     *
+     * @param string $constraintName
      * @return ForeignKeyConstraint
-     *
-     * @throws SchemaException If the foreign key does not exist.
      */
     public function getForeignKey($constraintName)
     {
-        $constraintName = $this->normalizeIdentifier($constraintName);
-        if (!$this->hasForeignKey($constraintName)) {
+        $constraintName = strtolower($constraintName);
+        if(!$this->hasForeignKey($constraintName)) {
             throw SchemaException::foreignKeyDoesNotExist($constraintName, $this->_name);
         }
 
         return $this->_fkConstraints[$constraintName];
     }
 
-    /**
-     * Removes the foreign key constraint with the given name.
-     *
-     * @param string $constraintName The constraint name.
-     *
-     * @return void
-     *
-     * @throws SchemaException
-     */
     public function removeForeignKey($constraintName)
     {
-        $constraintName = $this->normalizeIdentifier($constraintName);
-        if (!$this->hasForeignKey($constraintName)) {
+        $constraintName = strtolower($constraintName);
+        if(!$this->hasForeignKey($constraintName)) {
             throw SchemaException::foreignKeyDoesNotExist($constraintName, $this->_name);
         }
 
@@ -616,71 +501,52 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Returns ordered list of columns (primary keys are first, then foreign keys, then the rest)
      * @return Column[]
      */
     public function getColumns()
     {
-        $primaryKeyColumns = [];
+        $columns = $this->_columns;
+
+        $pkCols = array();
+        $fkCols = array();
+
         if ($this->hasPrimaryKey()) {
-            $primaryKeyColumns = $this->filterColumns($this->getPrimaryKey()->getColumns());
+            $pkCols = $this->getPrimaryKey()->getColumns();
         }
-
-        return array_merge($primaryKeyColumns, $this->getForeignKeyColumns(), $this->_columns);
-    }
-
-    /**
-     * Returns foreign key columns
-     * @return Column[]
-     */
-    private function getForeignKeyColumns()
-    {
-        $foreignKeyColumns = [];
-        foreach ($this->getForeignKeys() as $foreignKey) {
-            /* @var $foreignKey ForeignKeyConstraint */
-            $foreignKeyColumns = array_merge($foreignKeyColumns, $foreignKey->getColumns());
+        foreach ($this->getForeignKeys() as $fk) {
+            /* @var $fk ForeignKeyConstraint */
+            $fkCols = array_merge($fkCols, $fk->getColumns());
         }
-        return $this->filterColumns($foreignKeyColumns);
+        $colNames = array_unique(array_merge($pkCols, $fkCols, array_keys($columns)));
+
+        uksort($columns, function($a, $b) use($colNames) {
+            return (array_search($a, $colNames) >= array_search($b, $colNames));
+        });
+        return $columns;
     }
 
-    /**
-     * Returns only columns that have specified names
-     * @param array $columnNames
-     * @return Column[]
-     */
-    private function filterColumns(array $columnNames)
-    {
-        return array_filter($this->_columns, function ($columnName) use ($columnNames) {
-            return in_array($columnName, $columnNames, true);
-        }, ARRAY_FILTER_USE_KEY);
-    }
 
     /**
-     * Returns whether this table has a Column with the given name.
+     * Does this table have a column with the given name?
      *
-     * @param string $columnName The column name.
-     *
-     * @return boolean
+     * @param  string $columnName
+     * @return bool
      */
     public function hasColumn($columnName)
     {
-        $columnName = $this->normalizeIdentifier($columnName);
-
+        $columnName = $this->trimQuotes(strtolower($columnName));
         return isset($this->_columns[$columnName]);
     }
 
     /**
-     * Returns the Column with the given name.
+     * Get a column instance
      *
-     * @param string $columnName The column name.
-     *
+     * @param  string $columnName
      * @return Column
-     *
-     * @throws SchemaException If the column does not exist.
      */
     public function getColumn($columnName)
     {
-        $columnName = $this->normalizeIdentifier($columnName);
+        $columnName = strtolower($this->trimQuotes($columnName));
         if ( ! $this->hasColumn($columnName)) {
             throw SchemaException::columnDoesNotExist($columnName, $this->_name);
         }
@@ -689,26 +555,16 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Returns the primary key.
-     *
-     * @return Index|null The primary key, or null if this Table has no primary key.
+     * @return Index|null
      */
     public function getPrimaryKey()
     {
         if ( ! $this->hasPrimaryKey()) {
             return null;
         }
-
         return $this->getIndex($this->_primaryKeyName);
     }
 
-    /**
-     * Returns the primary key columns.
-     *
-     * @return array
-     *
-     * @throws DBALException
-     */
     public function getPrimaryKeyColumns()
     {
         if ( ! $this->hasPrimaryKey()) {
@@ -718,9 +574,9 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Returns whether this table has a primary key.
+     * Check if this table has a primary key.
      *
-     * @return boolean
+     * @return bool
      */
     public function hasPrimaryKey()
     {
@@ -728,40 +584,30 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Returns whether this table has an Index with the given name.
-     *
-     * @param string $indexName The index name.
-     *
-     * @return boolean
+     * @param  string $indexName
+     * @return bool
      */
     public function hasIndex($indexName)
     {
-        $indexName = $this->normalizeIdentifier($indexName);
-
+        $indexName = strtolower($indexName);
         return (isset($this->_indexes[$indexName]));
     }
 
     /**
-     * Returns the Index with the given name.
-     *
-     * @param string $indexName The index name.
-     *
+     * @param  string $indexName
      * @return Index
-     *
-     * @throws SchemaException If the index does not exist.
      */
     public function getIndex($indexName)
     {
-        $indexName = $this->normalizeIdentifier($indexName);
+        $indexName = strtolower($indexName);
         if ( ! $this->hasIndex($indexName)) {
             throw SchemaException::indexDoesNotExist($indexName, $this->_name);
         }
-
         return $this->_indexes[$indexName];
     }
 
     /**
-     * @return Index[]
+     * @return array
      */
     public function getIndexes()
     {
@@ -769,38 +615,25 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Returns the foreign key constraints.
+     * Get Constraints
      *
-     * @return ForeignKeyConstraint[]
+     * @return array
      */
     public function getForeignKeys()
     {
         return $this->_fkConstraints;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return boolean
-     */
     public function hasOption($name)
     {
         return isset($this->_options[$name]);
     }
 
-    /**
-     * @param string $name
-     *
-     * @return mixed
-     */
     public function getOption($name)
     {
         return $this->_options[$name];
     }
 
-    /**
-     * @return array
-     */
     public function getOptions()
     {
         return $this->_options;
@@ -808,8 +641,6 @@ class Table extends AbstractAsset
 
     /**
      * @param Visitor $visitor
-     *
-     * @return void
      */
     public function visit(Visitor $visitor)
     {
@@ -829,9 +660,7 @@ class Table extends AbstractAsset
     }
 
     /**
-     * Clone of a Table triggers a deep clone of all affected assets.
-     *
-     * @return void
+     * Clone of a Table triggers a deep clone of all affected assets
      */
     public function __clone()
     {
@@ -845,19 +674,5 @@ class Table extends AbstractAsset
             $this->_fkConstraints[$k] = clone $fk;
             $this->_fkConstraints[$k]->setLocalTable($this);
         }
-    }
-
-    /**
-     * Normalizes a given identifier.
-     *
-     * Trims quotes and lowercases the given identifier.
-     *
-     * @param string $identifier The identifier to normalize.
-     *
-     * @return string The normalized identifier.
-     */
-    private function normalizeIdentifier($identifier)
-    {
-        return $this->trimQuotes(strtolower($identifier));
     }
 }

@@ -17,33 +17,28 @@
  * <http://www.doctrine-project.org>.
  */
 
+
 namespace Doctrine\DBAL\Platforms\Keywords;
 
 /**
- * MySQL Keywordlist.
+ * MySQL Keywordlist
  *
- * @link   www.doctrine-project.org
- * @since  2.0
- * @author Benjamin Eberlei <kontakt@beberlei.de>
- * @author David Coallier <davidc@php.net>
+ * @license  BSD http://www.opensource.org/licenses/bsd-license.php
+ * @link        www.doctrine-project.com
+ * @since       2.0
+ * @author      Benjamin Eberlei <kontakt@beberlei.de>
+ * @author      David Coallier <davidc@php.net>
  */
 class MySQLKeywords extends KeywordList
 {
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
         return 'MySQL';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function getKeywords()
     {
         return array(
-            'ACCESSIBLE',
             'ADD',
             'ALL',
             'ALTER',
@@ -119,7 +114,6 @@ class MySQLKeywords extends KeywordList
             'FOREIGN',
             'FROM',
             'FULLTEXT',
-            'GENERAL',
             'GOTO',
             'GRANT',
             'GROUP',
@@ -130,7 +124,6 @@ class MySQLKeywords extends KeywordList
             'HOUR_SECOND',
             'IF',
             'IGNORE',
-            'IGNORE_SERVER_IDS',
             'IN',
             'INDEX',
             'INFILE',
@@ -159,7 +152,6 @@ class MySQLKeywords extends KeywordList
             'LEFT',
             'LIKE',
             'LIMIT',
-            'LINEAR',
             'LINES',
             'LOAD',
             'LOCALTIME',
@@ -170,10 +162,7 @@ class MySQLKeywords extends KeywordList
             'LONGTEXT',
             'LOOP',
             'LOW_PRIORITY',
-            'MASTER_HEARTBEAT_PERIOD',
-            'MASTER_SSL_VERIFY_SERVER_CERT',
             'MATCH',
-            'MAXVALUE',
             'MEDIUMBLOB',
             'MEDIUMINT',
             'MEDIUMTEXT',
@@ -183,8 +172,8 @@ class MySQLKeywords extends KeywordList
             'MOD',
             'MODIFIES',
             'NATURAL',
-            'NO_WRITE_TO_BINLOG',
             'NOT',
+            'NO_WRITE_TO_BINLOG',
             'NULL',
             'NUMERIC',
             'ON',
@@ -196,7 +185,6 @@ class MySQLKeywords extends KeywordList
             'OUT',
             'OUTER',
             'OUTFILE',
-            'PARTITION',
             'PRECISION',
             'PRIMARY',
             'PROCEDURE',
@@ -204,10 +192,8 @@ class MySQLKeywords extends KeywordList
             'RAID0',
             'RANGE',
             'READ',
-            'READ_WRITE',
             'READS',
             'REAL',
-            'RECURSIVE',
             'REFERENCES',
             'REGEXP',
             'RELEASE',
@@ -215,13 +201,11 @@ class MySQLKeywords extends KeywordList
             'REPEAT',
             'REPLACE',
             'REQUIRE',
-            'RESIGNAL',
             'RESTRICT',
             'RETURN',
             'REVOKE',
             'RIGHT',
             'RLIKE',
-            'ROWS',
             'SCHEMA',
             'SCHEMAS',
             'SECOND_MICROSECOND',
@@ -230,19 +214,17 @@ class MySQLKeywords extends KeywordList
             'SEPARATOR',
             'SET',
             'SHOW',
-            'SIGNAL',
-            'SLOW',
             'SMALLINT',
             'SONAME',
             'SPATIAL',
             'SPECIFIC',
             'SQL',
-            'SQL_BIG_RESULT',
-            'SQL_CALC_FOUND_ROWS',
-            'SQL_SMALL_RESULT',
             'SQLEXCEPTION',
             'SQLSTATE',
             'SQLWARNING',
+            'SQL_BIG_RESULT',
+            'SQL_CALC_FOUND_ROWS',
+            'SQL_SMALL_RESULT',
             'SSL',
             'STARTING',
             'STRAIGHT_JOIN',

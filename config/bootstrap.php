@@ -15,14 +15,14 @@
  // database configuration parameters
  $conn = array(
      'driver' => 'pdo_mysql',
-     'host'   => '10.200.10.212',
+     'host'   => '127.0.0.1',
      'user'   => 'root',
      'password' => 'root',
      'dbname'   => 'test',
  );
  
  // obtaining the entity manager
- $entityManager = EntityManager::create($conn, $config);
+$em = $entityManager = EntityManager::create($conn, $config);
  //$conn = $entityManager->getConnection();
  //$conn->getDatabasePlatform()->registerDoctrineTypeMapping('enum', 'string');
 

@@ -22,44 +22,41 @@ namespace Doctrine\DBAL\Query\Expression;
 /**
  * Composite expression is responsible to build a group of similar expression.
  *
- * @link   www.doctrine-project.org
- * @since  2.1
- * @author Guilherme Blanco <guilhermeblanco@hotmail.com>
- * @author Benjamin Eberlei <kontakt@beberlei.de>
+ * @license     http://www.opensource.org/licenses/lgpl-license.php LGPL
+ * @link        www.doctrine-project.org
+ * @since       2.1
+ * @author      Guilherme Blanco <guilhermeblanco@hotmail.com>
+ * @author      Benjamin Eberlei <kontakt@beberlei.de>
  */
 class CompositeExpression implements \Countable
 {
     /**
-     * Constant that represents an AND composite expression.
+     * Constant that represents an AND composite expression
      */
     const TYPE_AND = 'AND';
 
     /**
-     * Constant that represents an OR composite expression.
+     * Constant that represents an OR composite expression
      */
     const TYPE_OR  = 'OR';
 
     /**
-     * The instance type of composite expression.
-     *
-     * @var string
+     * @var string Holds the instance type of composite expression
      */
     private $type;
 
     /**
-     * Each expression part of the composite expression.
-     *
-     * @var array
+     * @var array Each expression part of the composite expression
      */
-    private $parts = [];
+    private $parts = array();
 
     /**
      * Constructor.
      *
-     * @param string $type  Instance type of composite expression.
-     * @param array  $parts Composition of expressions to be joined on composite expression.
+     * @param string $type Instance type of composite expression
+     * @param array $parts Composition of expressions to be joined on composite expression
      */
-    public function __construct($type, array $parts = [])
+    public function __construct($type, array $parts = array())
     {
         $this->type = $type;
 
@@ -71,9 +68,9 @@ class CompositeExpression implements \Countable
      *
      * @param array $parts
      *
-     * @return \Doctrine\DBAL\Query\Expression\CompositeExpression
+     * @return CompositeExpression
      */
-    public function addMultiple(array $parts = [])
+    public function addMultiple(array $parts = array())
     {
         foreach ((array) $parts as $part) {
             $this->add($part);
@@ -86,8 +83,7 @@ class CompositeExpression implements \Countable
      * Adds an expression to composite expression.
      *
      * @param mixed $part
-     *
-     * @return \Doctrine\DBAL\Query\Expression\CompositeExpression
+     * @return CompositeExpression
      */
     public function add($part)
     {
@@ -109,13 +105,13 @@ class CompositeExpression implements \Countable
     }
 
     /**
-     * Retrieves the string representation of this composite expression.
+     * Retrieve the string representation of this composite expression.
      *
      * @return string
      */
     public function __toString()
     {
-        if ($this->count() === 1) {
+        if (count($this->parts) === 1) {
             return (string) $this->parts[0];
         }
 
@@ -123,7 +119,7 @@ class CompositeExpression implements \Countable
     }
 
     /**
-     * Returns the type of this composite expression (AND/OR).
+     * Return type of this composite expression (AND/OR)
      *
      * @return string
      */

@@ -20,59 +20,25 @@
 namespace Doctrine\DBAL\Driver\Mysqli;
 
 use Doctrine\DBAL\Driver\Connection as Connection;
-use Doctrine\DBAL\Driver\PingableConnection;
-use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 
 /**
  * @author Kim Hemsø Rasmussen <kimhemsoe@gmail.com>
- * @author Till Klampaeckel <till@php.net>
  */
-class MysqliConnection implements Connection, PingableConnection, ServerInfoAwareConnection
+class MysqliConnection implements Connection
 {
-    /**
-     * Name of the option to set connection flags
-     */
-    const OPTION_FLAGS = 'flags';
-
     /**
      * @var \mysqli
      */
     private $_conn;
 
-    /**
-     * @param array  $params
-     * @param string $username
-     * @param string $password
-     * @param array  $driverOptions
-     *
-     * @throws \Doctrine\DBAL\Driver\Mysqli\MysqliException
-     */
-    public function __construct(array $params, $username, $password, array $driverOptions = [])
+    public function __construct(array $params, $username, $password, array $driverOptions = array())
     {
         $port = isset($params['port']) ? $params['port'] : ini_get('mysqli.default_port');
-
-        // Fallback to default MySQL port if not given.
-        if ( ! $port) {
-            $port = 3306;
-        }
-
         $socket = isset($params['unix_socket']) ? $params['unix_socket'] : ini_get('mysqli.default_socket');
-        $dbname = isset($params['dbname']) ? $params['dbname'] : null;
-
-        $flags = isset($driverOptions[static::OPTION_FLAGS]) ? $driverOptions[static::OPTION_FLAGS] : null;
 
         $this->_conn = mysqli_init();
-
-        $this->setSecureConnection($params);
-        $this->setDriverOptions($driverOptions);
-
-        set_error_handler(function () {});
-        try {
-            if ( ! $this->_conn->real_connect($params['host'], $username, $password, $dbname, $port, $socket, $flags)) {
-                throw new MysqliException($this->_conn->connect_error, $this->_conn->sqlstate ?? 'HY000', $this->_conn->connect_errno);
-            }
-        } finally {
-            restore_error_handler();
+        if ( ! $this->_conn->real_connect($params['host'], $username, $password, $params['dbname'], $port, $socket)) {
+            throw new MysqliException($this->_conn->connect_error, $this->_conn->connect_errno);
         }
 
         if (isset($params['charset'])) {
@@ -81,35 +47,15 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     }
 
     /**
-     * Retrieves mysqli native resource handle.
+     * Retrieve mysqli native resource handle.
      *
-     * Could be used if part of your application is not using DBAL.
+     * Could be used if part of your application is not using DBAL
      *
      * @return \mysqli
      */
     public function getWrappedResourceHandle()
     {
         return $this->_conn;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getServerVersion()
-    {
-        $majorVersion = floor($this->_conn->server_version / 10000);
-        $minorVersion = floor(($this->_conn->server_version - $majorVersion * 10000) / 100);
-        $patchVersion = floor($this->_conn->server_version - $majorVersion * 10000 - $minorVersion * 100);
-
-        return $majorVersion . '.' . $minorVersion . '.' . $patchVersion;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function requiresQueryForServerVersion()
-    {
-        return false;
     }
 
     /**
@@ -129,7 +75,6 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
         $sql = $args[0];
         $stmt = $this->prepare($sql);
         $stmt->execute();
-
         return $stmt;
     }
 
@@ -146,10 +91,7 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
      */
     public function exec($statement)
     {
-        if (false === $this->_conn->query($statement)) {
-            throw new MysqliException($this->_conn->error, $this->_conn->sqlstate, $this->_conn->errno);
-        }
-
+        $this->_conn->query($statement);
         return $this->_conn->affected_rows;
     }
 
@@ -167,7 +109,6 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     public function beginTransaction()
     {
         $this->_conn->query('START TRANSACTION');
-
         return true;
     }
 
@@ -201,97 +142,5 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     public function errorInfo()
     {
         return $this->_conn->error;
-    }
-
-    /**
-     * Apply the driver options to the connection.
-     *
-     * @param array $driverOptions
-     *
-     * @throws MysqliException When one of of the options is not supported.
-     * @throws MysqliException When applying doesn't work - e.g. due to incorrect value.
-     */
-    private function setDriverOptions(array $driverOptions = [])
-    {
-        $supportedDriverOptions = [
-            \MYSQLI_OPT_CONNECT_TIMEOUT,
-            \MYSQLI_OPT_LOCAL_INFILE,
-            \MYSQLI_INIT_COMMAND,
-            \MYSQLI_READ_DEFAULT_FILE,
-            \MYSQLI_READ_DEFAULT_GROUP,
-        ];
-
-        if (defined('MYSQLI_SERVER_PUBLIC_KEY')) {
-            $supportedDriverOptions[] = \MYSQLI_SERVER_PUBLIC_KEY;
-        }
-
-        $exceptionMsg = "%s option '%s' with value '%s'";
-
-        foreach ($driverOptions as $option => $value) {
-
-            if ($option === static::OPTION_FLAGS) {
-                continue;
-            }
-
-            if (!in_array($option, $supportedDriverOptions, true)) {
-                throw new MysqliException(
-                    sprintf($exceptionMsg, 'Unsupported', $option, $value)
-                );
-            }
-
-            if (@mysqli_options($this->_conn, $option, $value)) {
-                continue;
-            }
-
-            $msg  = sprintf($exceptionMsg, 'Failed to set', $option, $value);
-            $msg .= sprintf(', error: %s (%d)', mysqli_error($this->_conn), mysqli_errno($this->_conn));
-
-            throw new MysqliException(
-                $msg,
-                $this->_conn->sqlstate,
-                $this->_conn->errno
-            );
-        }
-    }
-
-    /**
-     * Pings the server and re-connects when `mysqli.reconnect = 1`
-     *
-     * @return bool
-     */
-    public function ping()
-    {
-        return $this->_conn->ping();
-    }
-
-    /**
-     * Establish a secure connection
-     *
-     * @param array $params
-     * @throws MysqliException
-     */
-    private function setSecureConnection(array $params)
-    {
-        if (! isset($params['ssl_key']) &&
-            ! isset($params['ssl_cert']) &&
-            ! isset($params['ssl_ca']) &&
-            ! isset($params['ssl_capath']) &&
-            ! isset($params['ssl_cipher'])
-        ) {
-            return;
-        }
-
-        if (! isset($params['ssl_key']) || ! isset($params['ssl_cert'])) {
-            $msg = '"ssl_key" and "ssl_cert" parameters are mandatory when using secure connection parameters.';
-            throw new MysqliException($msg);
-        }
-
-        $this->_conn->ssl_set(
-            $params['ssl_key'],
-            $params['ssl_cert'],
-            $params['ssl_ca']     ?? null,
-            $params['ssl_capath'] ?? null,
-            $params['ssl_cipher'] ?? null
-        );
     }
 }

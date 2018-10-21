@@ -69,8 +69,6 @@ class InvalidArgumentException extends BaseInvalidArgumentException implements P
     }
 
     /**
-     * @param Proxy $proxy
-     *
      * @return self
      */
     public static function unitializedProxyExpected(Proxy $proxy)
@@ -88,25 +86,5 @@ class InvalidArgumentException extends BaseInvalidArgumentException implements P
         $type = is_object($callback) ? get_class($callback) : gettype($callback);
 
         return new self(sprintf('Invalid \$notFoundCallback given: must be a callable, "%s" given', $type));
-    }
-
-    /**
-     * @param string $className
-     *
-     * @return self
-     */
-    public static function classMustNotBeAbstract($className)
-    {
-        return new self(sprintf('Unable to create a proxy for an abstract class "%s".', $className));
-    }
-
-    /**
-     * @param string $className
-     *
-     * @return self
-     */
-    public static function classMustNotBeFinal($className)
-    {
-        return new self(sprintf('Unable to create a proxy for a final class "%s".', $className));
     }
 }

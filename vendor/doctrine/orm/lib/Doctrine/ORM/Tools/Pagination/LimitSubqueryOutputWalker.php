@@ -13,14 +13,11 @@
 
 namespace Doctrine\ORM\Tools\Pagination;
 
-use Doctrine\ORM\Query\AST\PathExpression;
-use Doctrine\ORM\Query\SqlWalker;
-use Doctrine\ORM\Query\AST\SelectStatement;
-use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
-use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\ORM\Query\SqlWalker,
+    Doctrine\ORM\Query\AST\SelectStatement;
 
 /**
- * Wraps the query in order to select root entity IDs for pagination.
+ * Wrap the query in order to select root entity IDs for pagination
  *
  * Given a DQL like `SELECT u FROM User u` it will generate an SQL query like:
  * SELECT DISTINCT <id> FROM (<original SQL>) LIMIT x OFFSET y
@@ -33,12 +30,12 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 class LimitSubqueryOutputWalker extends SqlWalker
 {
     /**
-     * @var \Doctrine\DBAL\Platforms\AbstractPlatform
+     * @var Doctrine\DBAL\Platforms\AbstractPlatform
      */
     private $platform;
 
     /**
-     * @var \Doctrine\ORM\Query\ResultSetMapping
+     * @var Doctrine\ORM\Query\ResultSetMapping
      */
     private $rsm;
 
@@ -58,15 +55,13 @@ class LimitSubqueryOutputWalker extends SqlWalker
     private $maxResults;
 
     /**
-     * Constructor.
-     *
-     * Stores various parameters that are otherwise unavailable
+     * Constructor. Stores various parameters that are otherwise unavailable
      * because Doctrine\ORM\Query\SqlWalker keeps everything private without
      * accessors.
      *
-     * @param \Doctrine\ORM\Query              $query
-     * @param \Doctrine\ORM\Query\ParserResult $parserResult
-     * @param array                            $queryComponents
+     * @param Doctrine\ORM\Query $query
+     * @param Doctrine\ORM\Query\ParserResult $parserResult
+     * @param array $queryComponents
      */
     public function __construct($query, $parserResult, array $queryComponents)
     {
@@ -83,39 +78,21 @@ class LimitSubqueryOutputWalker extends SqlWalker
     }
 
     /**
-     * Walks down a SelectStatement AST node, wrapping it in a SELECT DISTINCT.
+     * Walks down a SelectStatement AST node, wrapping it in a SELECT DISTINCT
      *
      * @param SelectStatement $AST
-     *
      * @return string
-     *
-     * @throws \RuntimeException
      */
     public function walkSelectStatement(SelectStatement $AST)
     {
-        // Set every select expression as visible(hidden = false) to
-        // make $AST have scalar mappings properly - this is relevant for referencing selected
-        // fields from outside the subquery, for example in the ORDER BY segment
-        $hiddens = array();
+        $sql = parent::walkSelectStatement($AST);
 
-        foreach ($AST->selectClause->selectExpressions as $idx => $expr) {
-            $hiddens[$idx] = $expr->hiddenAliasResultVariable;
-            $expr->hiddenAliasResultVariable = false;
-        }
-
-        $innerSql = parent::walkSelectStatement($AST);
-
-        // Restore hiddens
-        foreach ($AST->selectClause->selectExpressions as $idx => $expr) {
-            $expr->hiddenAliasResultVariable = $hiddens[$idx];
-        }
-
-        // Find out the SQL alias of the identifier column of the root entity.
+        // Find out the SQL alias of the identifier column of the root entity
         // It may be possible to make this work with multiple root entities but that
-        // would probably require issuing multiple queries or doing a UNION SELECT.
-        // So for now, it's not supported.
+        // would probably require issuing multiple queries or doing a UNION SELECT
+        // so for now, It's not supported.
 
-        // Get the root entity and alias from the AST fromClause.
+        // Get the root entity and alias from the AST fromClause
         $from = $AST->fromClause->identificationVariableDeclarations;
         if (count($from) !== 1) {
             throw new \RuntimeException("Cannot count query which selects two FROM components, cannot make distinction");
@@ -156,12 +133,9 @@ class LimitSubqueryOutputWalker extends SqlWalker
 
         // Build the counter query
         $sql = sprintf('SELECT DISTINCT %s FROM (%s) dctrn_result',
-            implode(', ', $sqlIdentifier), $innerSql);
+            implode(', ', $sqlIdentifier), $sql);
 
-        // http://www.doctrine-project.org/jira/browse/DDC-1958
-        $sql = $this->preserveSqlOrdering($AST, $sqlIdentifier, $innerSql, $sql);
-
-        // Apply the limit and offset.
+        // Apply the limit and offset
         $sql = $this->platform->modifyLimitQuery(
             $sql, $this->maxResults, $this->firstResult
         );
@@ -172,53 +146,6 @@ class LimitSubqueryOutputWalker extends SqlWalker
         // up the one we have.
         foreach ($sqlIdentifier as $property => $alias) {
             $this->rsm->addScalarResult($alias, $property);
-        }
-
-        return $sql;
-    }
-
-    /**
-     * Generates new SQL for Postgresql or Oracle if necessary.
-     *
-     * @param SelectStatement $AST
-     * @param array           $sqlIdentifier
-     * @param string          $innerSql
-     * @param string          $sql
-     *
-     * @return void
-     */
-    public function preserveSqlOrdering(SelectStatement $AST, array $sqlIdentifier, $innerSql, $sql)
-    {
-        // For every order by, find out the SQL alias by inspecting the ResultSetMapping.
-        $sqlOrderColumns = array();
-        $orderBy         = array();
-        if (isset($AST->orderByClause)) {
-            foreach ($AST->orderByClause->orderByItems as $item) {
-                $expression = $item->expression;
-
-                $possibleAliases = $expression instanceof PathExpression
-                    ? array_keys($this->rsm->fieldMappings, $expression->field)
-                    : array_keys($this->rsm->scalarMappings, $expression);
-
-                foreach ($possibleAliases as $alias) {
-                    if (!is_object($expression) || $this->rsm->columnOwnerMap[$alias] == $expression->identificationVariable) {
-                        $sqlOrderColumns[] = $alias;
-                        $orderBy[]         = $alias . ' ' . $item->type;
-                        break;
-                    }
-                }
-            }
-            //remove identifier aliases
-            $sqlOrderColumns = array_diff($sqlOrderColumns, $sqlIdentifier);
-        }
-
-        if (count($orderBy)) {
-            $sql = sprintf(
-                'SELECT DISTINCT %s FROM (%s) dctrn_result ORDER BY %s',
-                implode(', ', array_merge($sqlIdentifier, $sqlOrderColumns)),
-                $innerSql,
-                implode(', ', $orderBy)
-            );
         }
 
         return $sql;

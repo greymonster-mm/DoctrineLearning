@@ -39,9 +39,9 @@ use Doctrine\DBAL\Connection;
  *
  * CREATE sequences (
  *   sequence_name VARCHAR(255) NOT NULL,
- *   sequence_value INT NOT NULL DEFAULT 1,
- *   sequence_increment_by INT NOT NULL DEFAULT 1,
- *   PRIMARY KEY (sequence_name)
+ *   sequence_value INT NOT NULL DEFAULT '1',
+ *   sequence_increment_by INT NOT NULL DEFAULT '1',
+ *   PRIMARY KEY (table_name)
  * );
  *
  * Technically this generator works as follows:
@@ -79,10 +79,8 @@ class TableGenerator
     private $sequences = array();
 
     /**
-     * @param \Doctrine\DBAL\Connection $conn
-     * @param string                    $generatorTableName
-     *
-     * @throws \Doctrine\DBAL\DBALException
+     * @param Connection $conn
+     * @param string $generatorTableName
      */
     public function __construct(Connection $conn, $generatorTableName = 'sequences')
     {
@@ -95,13 +93,10 @@ class TableGenerator
     }
 
     /**
-     * Generates the next unused value for the given sequence name.
+     * Generate the next unused value for the given sequence name
      *
-     * @param string $sequenceName
-     *
-     * @return integer
-     *
-     * @throws \Doctrine\DBAL\DBALException
+     * @param string
+     * @return int
      */
     public function nextValue($sequenceName)
     {
@@ -111,7 +106,6 @@ class TableGenerator
             if ($this->sequences[$sequenceName]['value'] >= $this->sequences[$sequenceName]['max']) {
                 unset ($this->sequences[$sequenceName]);
             }
-
             return $value;
         }
 
@@ -155,11 +149,12 @@ class TableGenerator
 
             $this->conn->commit();
 
-        } catch (\Exception $e) {
-            $this->conn->rollBack();
-            throw new \Doctrine\DBAL\DBALException("Error occurred while generating ID with TableGenerator, aborted generation: " . $e->getMessage(), 0, $e);
+        } catch(\Exception $e) {
+            $this->conn->rollback();
+            throw new \Doctrine\DBAL\DBALException("Error occured while generating ID with TableGenerator, aborted generation: " . $e->getMessage(), 0, $e);
         }
 
         return $value;
     }
 }
+

@@ -19,6 +19,7 @@
 
 namespace Doctrine\Common\Persistence\Event;
 
+use Doctrine\Common\EventArgs;
 use Doctrine\Common\Persistence\ObjectManager;
 
 /**
@@ -130,7 +131,7 @@ class PreUpdateEventArgs extends LifecycleEventArgs
             throw new \InvalidArgumentException(sprintf(
                 'Field "%s" is not a valid field of the entity "%s" in PreUpdateEventArgs.',
                 $field,
-                get_class($this->getObject())
+                get_class($this->getEntity())
             ));
         }
     }

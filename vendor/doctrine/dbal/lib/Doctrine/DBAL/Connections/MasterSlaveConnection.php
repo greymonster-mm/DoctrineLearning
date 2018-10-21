@@ -19,12 +19,13 @@
 
 namespace Doctrine\DBAL\Connections;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver;
-use Doctrine\DBAL\Configuration;
-use Doctrine\Common\EventManager;
-use Doctrine\DBAL\Event\ConnectionEventArgs;
-use Doctrine\DBAL\Events;
+
+use Doctrine\DBAL\Connection,
+    Doctrine\DBAL\Driver,
+    Doctrine\DBAL\Configuration,
+    Doctrine\Common\EventManager,
+    Doctrine\DBAL\Event\ConnectionEventArgs,
+    Doctrine\DBAL\Events;
 
 /**
  * Master-Slave Connection
@@ -83,36 +84,34 @@ use Doctrine\DBAL\Events;
 class MasterSlaveConnection extends Connection
 {
     /**
-     * Master and slave connection (one of the randomly picked slaves).
+     * Master and slave connection (one of the randomly picked slaves)
      *
-     * @var \Doctrine\DBAL\Driver\Connection[]
+     * @var Doctrine\DBAL\Driver\Connection[]
      */
-    protected $connections = ['master' => null, 'slave' => null];
+    protected $connections = array('master' => null, 'slave' => null);
 
     /**
      * You can keep the slave connection and then switch back to it
      * during the request if you know what you are doing.
      *
-     * @var boolean
+     * @var bool
      */
     protected $keepSlave = false;
 
     /**
-     * Creates Master Slave Connection.
+     * Create Master Slave Connection
      *
-     * @param array                              $params
-     * @param \Doctrine\DBAL\Driver              $driver
-     * @param \Doctrine\DBAL\Configuration|null  $config
-     * @param \Doctrine\Common\EventManager|null $eventManager
-     *
-     * @throws \InvalidArgumentException
+     * @param array $params
+     * @param Driver $driver
+     * @param Configuration $config
+     * @param EventManager $eventManager
      */
     public function __construct(array $params, Driver $driver, Configuration $config = null, EventManager $eventManager = null)
     {
-        if ( !isset($params['slaves']) || !isset($params['master'])) {
+        if ( !isset($params['slaves']) || !isset($params['master']) ) {
             throw new \InvalidArgumentException('master or slaves configuration missing');
         }
-        if (count($params['slaves']) == 0) {
+        if ( count($params['slaves']) == 0 ) {
             throw new \InvalidArgumentException('You have to configure at least one slaves.');
         }
 
@@ -121,15 +120,15 @@ class MasterSlaveConnection extends Connection
             $params['slaves'][$slaveKey]['driver'] = $params['driver'];
         }
 
-        $this->keepSlave = isset($params['keepSlave']) ? (bool) $params['keepSlave'] : false;
+        $this->keepSlave = isset($params['keepSlave']) ? (bool)$params['keepSlave'] : false;
 
         parent::__construct($params, $driver, $config, $eventManager);
     }
 
     /**
-     * Checks if the connection is currently towards the master or not.
+     * Check if the connection is currently towards the master or not.
      *
-     * @return boolean
+     * @return bool
      */
     public function isConnectedToMaster()
     {
@@ -144,14 +143,14 @@ class MasterSlaveConnection extends Connection
         $requestedConnectionChange = ($connectionName !== null);
         $connectionName            = $connectionName ?: 'slave';
 
-        if ($connectionName !== 'slave' && $connectionName !== 'master') {
+        if ( $connectionName !== 'slave' && $connectionName !== 'master' ) {
             throw new \InvalidArgumentException("Invalid option to connect(), only master or slave allowed.");
         }
 
         // If we have a connection open, and this is not an explicit connection
         // change request, then abort right here, because we are already done.
         // This prevents writes to the slave in case of "keepSlave" option enabled.
-        if (isset($this->_conn) && $this->_conn && !$requestedConnectionChange) {
+        if ($this->_conn && !$requestedConnectionChange) {
             return false;
         }
 
@@ -162,20 +161,23 @@ class MasterSlaveConnection extends Connection
             $forceMasterAsSlave = true;
         }
 
-        if (isset($this->connections[$connectionName]) && $this->connections[$connectionName]) {
-            $this->_conn = $this->connections[$connectionName];
-
-            if ($forceMasterAsSlave && ! $this->keepSlave) {
-                $this->connections['slave'] = $this->_conn;
+        if ($this->connections[$connectionName]) {
+            if ($forceMasterAsSlave) {
+                $this->connections['slave'] = $this->_conn = $this->connections['master'];
+            } else {
+                $this->_conn = $this->connections[$connectionName];
             }
-
             return false;
         }
 
         if ($connectionName === 'master') {
+            // Set slave connection to master to avoid invalid reads
+            if ($this->connections['slave'] && ! $this->keepSlave) {
+                unset($this->connections['slave']);
+            }
+
             $this->connections['master'] = $this->_conn = $this->connectTo($connectionName);
 
-            // Set slave connection to master to avoid invalid reads
             if ( ! $this->keepSlave) {
                 $this->connections['slave'] = $this->connections['master'];
             }
@@ -192,17 +194,16 @@ class MasterSlaveConnection extends Connection
     }
 
     /**
-     * Connects to a specific connection.
+     * Connect to a specific connection
      *
-     * @param string $connectionName
-     *
-     * @return \Doctrine\DBAL\Driver
+     * @param  string $connectionName
+     * @return Driver
      */
     protected function connectTo($connectionName)
     {
         $params = $this->getParams();
 
-        $driverOptions = isset($params['driverOptions']) ? $params['driverOptions'] : [];
+        $driverOptions = isset($params['driverOptions']) ? $params['driverOptions'] : array();
 
         $connectionParams = $this->chooseConnectionConfiguration($connectionName, $params);
 
@@ -212,12 +213,6 @@ class MasterSlaveConnection extends Connection
         return $this->_driver->connect($connectionParams, $user, $password, $driverOptions);
     }
 
-    /**
-     * @param string $connectionName
-     * @param array  $params
-     *
-     * @return mixed
-     */
     protected function chooseConnectionConfiguration($connectionName, $params)
     {
         if ($connectionName === 'master') {
@@ -230,10 +225,9 @@ class MasterSlaveConnection extends Connection
     /**
      * {@inheritDoc}
      */
-    public function executeUpdate($query, array $params = [], array $types = [])
+    public function executeUpdate($query, array $params = array(), array $types = array())
     {
         $this->connect('master');
-
         return parent::executeUpdate($query, $params, $types);
     }
 
@@ -243,8 +237,7 @@ class MasterSlaveConnection extends Connection
     public function beginTransaction()
     {
         $this->connect('master');
-
-        parent::beginTransaction();
+        return parent::beginTransaction();
     }
 
     /**
@@ -253,8 +246,7 @@ class MasterSlaveConnection extends Connection
     public function commit()
     {
         $this->connect('master');
-
-        parent::commit();
+        return parent::commit();
     }
 
     /**
@@ -263,51 +255,33 @@ class MasterSlaveConnection extends Connection
     public function rollBack()
     {
         $this->connect('master');
-
         return parent::rollBack();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function delete($tableName, array $identifier, array $types = [])
+    public function delete($tableName, array $identifier)
     {
         $this->connect('master');
-
-        return parent::delete($tableName, $identifier, $types);
+        return parent::delete($tableName, $identifier);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function close()
-    {
-        unset($this->connections['master']);
-        unset($this->connections['slave']);
-
-        parent::close();
-
-        $this->_conn = null;
-        $this->connections = array('master' => null, 'slave' => null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function update($tableName, array $data, array $identifier, array $types = [])
+    public function update($tableName, array $data, array $identifier, array $types = array())
     {
         $this->connect('master');
-
         return parent::update($tableName, $data, $identifier, $types);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function insert($tableName, array $data, array $types = [])
+    public function insert($tableName, array $data, array $types = array())
     {
         $this->connect('master');
-
         return parent::insert($tableName, $data, $types);
     }
 
@@ -317,7 +291,6 @@ class MasterSlaveConnection extends Connection
     public function exec($statement)
     {
         $this->connect('master');
-
         return parent::exec($statement);
     }
 
@@ -328,7 +301,7 @@ class MasterSlaveConnection extends Connection
     {
         $this->connect('master');
 
-        parent::createSavepoint($savepoint);
+        return parent::createSavepoint($savepoint);
     }
 
     /**
@@ -338,7 +311,7 @@ class MasterSlaveConnection extends Connection
     {
         $this->connect('master');
 
-        parent::releaseSavepoint($savepoint);
+        return parent::releaseSavepoint($savepoint);
     }
 
     /**
@@ -348,12 +321,9 @@ class MasterSlaveConnection extends Connection
     {
         $this->connect('master');
 
-        parent::rollbackSavepoint($savepoint);
+        return parent::rollbackSavepoint($savepoint);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function query()
     {
         $this->connect('master');
@@ -364,8 +334,8 @@ class MasterSlaveConnection extends Connection
         if ($logger) {
             $logger->startQuery($args[0]);
         }
-        
-        $statement = $this->_conn->query(...$args);
+
+        $statement = call_user_func_array(array($this->_conn, 'query'), $args);
 
         if ($logger) {
             $logger->stopQuery();
@@ -374,9 +344,6 @@ class MasterSlaveConnection extends Connection
         return $statement;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function prepare($statement)
     {
         $this->connect('master');
