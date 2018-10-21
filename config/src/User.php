@@ -21,17 +21,23 @@ class User
     protected $name;
 
     /**
-     * @OneToMany(targetEntity="Bug", mappedBy="reporter")
+     * @OneToMany(targetEntity="Bug", mappedBy="reporter" , fetch="EXTRA_LAZY")
      * @var Bug[] An ArrayCollection of Bug objects.
      **/
     protected $reportedBugs = null;
 
     /**
-     * @OneToMany(targetEntity="Bug", mappedBy="engineer")
+     * @OneToMany(targetEntity="Bug", mappedBy="engineer" , fetch="EXTRA_LAZY")
      * @var Bug[] An ArrayCollection of Bug objects.
      **/
     protected $assignedBugs = null;
-    
+
+    /**
+     * ManyToOne(targetEntity="Address", inversedBy="uid" , fetch="EXTRA_LAZY")
+     * var Address[] An ArrayCollection of Address objects
+     *
+    protected $address = null;
+	*/
     public function getId()
     {
         return $this->id;
@@ -51,7 +57,14 @@ class User
     {
         $this->reportedBugs = new ArrayCollection();
         $this->assignedBugs = new ArrayCollection();
+        //$this->address = new ArrayCollection();
     }
+
+   /*  public function getAddress()
+    {
+        return $this->address;
+    
+    } */
 
     public function addReportedBug(Bug $bug)
     {
